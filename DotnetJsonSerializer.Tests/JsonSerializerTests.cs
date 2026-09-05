@@ -156,6 +156,21 @@ public class JsonSerializerTests
 
         Assert.Equal("[[1, 2], [3, 4]]", result);
     }
+
+    [Fact]
+    public void SerializeDictionary()
+    {
+        var user = new Dictionary<string, object>
+        {
+            ["name"]  = "Shafayet Bro",
+            ["age"] = 27 //i guess
+        };
+
+        var result = JsonSerializer.Serialize(user);
+        var expected = "{\"name\": \"Shafayet Bro\",\"age\": 27}";
+        
+        Assert.Equal(expected, result);
+    }
 }
 
 public class User

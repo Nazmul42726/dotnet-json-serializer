@@ -19,10 +19,15 @@ public static class JsonSerializer
             float f     => f.ToString(CultureInfo.InvariantCulture),
             double d    => d.ToString(CultureInfo.InvariantCulture),
             decimal d   => d.ToString(CultureInfo.InvariantCulture),
-            _           => obj is IEnumerable collection ?
-                            SerializeCollection(collection) : 
-                            SerializeObject(obj)
+            _           => SerializeComplexType(obj)
         };
+    }
+
+    private static string SerializeComplexType(object obj)
+    {
+        if(obj is IDictionary dictionary) return SerializeDictionary(dictionary);
+        else if(obj is IEnumerable collection) return SerializeCollection(collection);
+        else return SerializeObject(obj);
     }
 
     private static string EscapeString(string s)
@@ -117,4 +122,28 @@ public static class JsonSerializer
         result.Append("]");
         return result.ToString();
     }
+
+    private static string SerializeDictionary(IDictionary dictionary)
+    {
+        var result = new StringBuilder();
+        result.Append("{");
+        
+        var first = true;
+
+        foreach(DictionaryEntry entry in dictionary)
+        {
+            if(!first) result.Append(",");
+
+            result.Append(Serialize(entry.Key));
+            result.Append(": ");
+            result.Append(Serialize(entry.Value));
+
+            first = false;
+        }
+
+        result.Append("}");
+
+        return result.ToString();
+    }
+
 }
