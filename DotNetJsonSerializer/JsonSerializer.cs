@@ -8,99 +8,89 @@ public static class JsonSerializer
 {
     public static string Serialize(object? obj)
     {
-        if (obj == null) return "null";
-
-        return obj switch
-        {
-            string s    => $"\"{EscapeString(s)}\"",
-            bool b      => b ? "true" : "false",
-            int i       => i.ToString(),
-            long l      => l.ToString(),
-            float f     => f.ToString(CultureInfo.InvariantCulture),
-            double d    => d.ToString(CultureInfo.InvariantCulture),
-            decimal d   => d.ToString(CultureInfo.InvariantCulture),
-            DateTime dt => $"\"{dt.ToString("O")}\"",
-            Guid guid   => $"\"{guid}\"",
-            Enum e      => Convert.ToInt64(e).ToString(),
-            _           => SerializeComplexType(obj)
-        };
+        return Serialize(obj, []);
     }
 
-    private static string SerializeComplexType(object obj)
+    private static string Serialize(
+        object? obj,
+        HashSet<object> references)
     {
-        if(obj is IDictionary dictionary) return SerializeDictionary(dictionary);
-        else if(obj is IEnumerable collection) return SerializeCollection(collection);
-        else return SerializeObject(obj);
+        if (obj == null) return "null";
+        if (!obj.GetType().IsValueType && !references.Add(obj))
+        {
+            throw new InvalidOperationException("Circular reference!");
+        }
+        try
+        {
+            if (obj is string s) return $"\"{EscapeString(s)}\"";
+            if (obj is bool b) return b ? "true" : "false";
+            if (obj is int i) return i.ToString();
+            if (obj is long l) return l.ToString();
+            if (obj is float f) return f.ToString(CultureInfo.InvariantCulture);
+            if (obj is double d) return d.ToString(CultureInfo.InvariantCulture);
+            if (obj is decimal dc) return dc.ToString(CultureInfo.InvariantCulture);
+            if (obj is DateTime dt) return $"\"{dt.ToString("O", CultureInfo.InvariantCulture)}\"";
+            if (obj is Guid guid) return $"\"{guid}\"";
+            if (obj is Enum e) return Convert.ToInt64(e).ToString();
+            return SerializeComplexType(obj, references);
+        }
+        finally
+        {
+            references.Remove(obj);
+        }
     }
+
+    private static string SerializeComplexType(
+        object obj,
+        HashSet<object> references)
+    {
+        if (obj is IDictionary dictionary) return SerializeDictionary(dictionary, references);
+        if (obj is IEnumerable collection) return SerializeCollection(collection, references);
+        return SerializeObject(obj, references);
+    }
+
+    private static readonly Dictionary<char, string> EscapeSequences = new()
+    {
+        ['"'] = "\\\"",
+        ['\\'] = "\\\\",
+        ['\n'] = "\\n",
+        ['\r'] = "\\r",
+        ['\t'] = "\\t",
+        ['\b'] = "\\b",
+        ['\f'] = "\\f"
+    };
 
     private static string EscapeString(string s)
     {
         var builder = new StringBuilder();
 
-        foreach (var ch in s)
+        foreach(var ch in s)
         {
-            switch (ch)
-            {
-                case '"':
-                    builder.Append("\\\"");
-                    break;
-
-                case '\\':
-                    builder.Append("\\\\");
-                    break;
-
-                case '\n':
-                    builder.Append("\\n");
-                    break;
-
-                case '\r':
-                    builder.Append("\\r");
-                    break;
-
-                case '\t':
-                    builder.Append("\\t");
-                    break;
-
-                case '\b':
-                    builder.Append("\\b");
-                    break;
-
-                case '\f':
-                    builder.Append("\\f");
-                    break;
-
-                default:
-                    if (ch < ' ')
-                    {
-                        builder.Append($"\\u{(int)ch:X4}");
-                    }
-                    else
-                    {
-                        builder.Append(ch);
-                    }
-
-                    break;
-            }
+            if(EscapeSequences.TryGetValue(ch, out var escaped)) builder.Append(escaped);
+            else if(ch < ' ') builder.Append($"\\u{(int)ch:X4}");
+            else builder.Append(ch);
         }
         return builder.ToString();
     }
 
-    private static string SerializeObject(object obj)
+    private static string SerializeObject(
+        object obj,
+        HashSet<object> references)
     {
         var result = new StringBuilder();
         result.Append("{");
-        
+
         var properties = obj.GetType().GetProperties();
 
-        for(var i=0; i<properties.Length; i++)
-        {   
+        for (var i = 0; i < properties.Length; i++)
+        {
             var property = properties[i];
             var propertyName = property.Name;
             var propertyValue = property.GetValue(obj);
 
-            var jsonValue = $"{Serialize(propertyName)}: {Serialize(propertyValue)}";
+            var jsonValue = $"{Serialize(propertyName, references)}: {Serialize(propertyValue, references)}";
 
-            if(i > 0) result.Append(",");
+            if (i > 0) result.Append(",");
             result.Append(jsonValue);
         }
         result.Append("}");
@@ -108,17 +98,19 @@ public static class JsonSerializer
         return result.ToString();
     }
 
-    private static string SerializeCollection(IEnumerable collection)
+    private static string SerializeCollection(
+        IEnumerable collection,
+        HashSet<object> references)
     {
         var result = new StringBuilder();
         result.Append("[");
 
         var first = true;
 
-        foreach(var item in collection)
+        foreach (var item in collection)
         {
-            if(!first) result.Append(", ");
-            result.Append(Serialize(item));
+            if (!first) result.Append(", ");
+            result.Append(Serialize(item, references));
             first = false;
         }
 
@@ -126,20 +118,22 @@ public static class JsonSerializer
         return result.ToString();
     }
 
-    private static string SerializeDictionary(IDictionary dictionary)
+    private static string SerializeDictionary(
+        IDictionary dictionary,
+        HashSet<object> references)
     {
         var result = new StringBuilder();
         result.Append("{");
-        
+
         var first = true;
 
-        foreach(DictionaryEntry entry in dictionary)
+        foreach (DictionaryEntry entry in dictionary)
         {
-            if(!first) result.Append(",");
+            if (!first) result.Append(",");
 
-            result.Append(Serialize(entry.Key));
+            result.Append(Serialize(entry.Key, references));
             result.Append(": ");
-            result.Append(Serialize(entry.Value));
+            result.Append(Serialize(entry.Value, references));
 
             first = false;
         }

@@ -1,4 +1,5 @@
 using System.ComponentModel.DataAnnotations;
+using System.Xml;
 
 namespace DotnetJsonSerializer.Tests;
 
@@ -284,11 +285,43 @@ public class JsonSerializerTests
     public void SerializeEnum()
     {
         var status = Status.InActive;
-        
+
         var result = JsonSerializer.Serialize(status);
         var expected = "2";
 
         Assert.Equal(expected, result);
+    }
+
+    [Fact]
+    public void SerializeCircularReference()
+    {
+        var node = new Node();
+        node.Next = node;
+
+        var exception = Assert.Throws<InvalidOperationException>(
+            () => JsonSerializer.Serialize(node));
+
+        Assert.Equal("Circular reference!", exception.Message);
+    }
+
+    [Fact]
+    public void SerializeRepeatedReference()
+    {
+        var address = new Address
+        {
+            City = "Chittagong",
+            Zip = 4000
+        };
+
+        var users = new[]
+        {
+        new User { Id = 1, Name = "Nazmul", IsActive = true, Address = address },
+        new User { Id = 2, Name = "Test", IsActive = false, Address = address }
+    };
+
+        var result = JsonSerializer.Serialize(users);
+
+        Assert.Contains("\"City\": \"Chittagong\"", result);
     }
 }
 
@@ -304,4 +337,9 @@ public class Address
 {
     public string City { get; set; } = string.Empty;
     public int Zip { get; set; }
+}
+
+public class Node()
+{
+    public Node? Next { get; set; }
 }
