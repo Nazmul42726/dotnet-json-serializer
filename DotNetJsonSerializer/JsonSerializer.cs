@@ -19,6 +19,9 @@ public static class JsonSerializer
             float f     => f.ToString(CultureInfo.InvariantCulture),
             double d    => d.ToString(CultureInfo.InvariantCulture),
             decimal d   => d.ToString(CultureInfo.InvariantCulture),
+            DateTime dt => $"\"{dt.ToString("O")}\"",
+            Guid guid   => $"\"{guid}\"",
+            Enum e      => Convert.ToInt64(e).ToString(),
             _           => SerializeComplexType(obj)
         };
     }
