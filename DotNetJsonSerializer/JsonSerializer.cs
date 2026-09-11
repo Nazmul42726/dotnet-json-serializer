@@ -37,6 +37,18 @@ public static class JsonSerializer
         if (targetType == typeof(DateTime))
             return DateTime.Parse((string)value!, CultureInfo.InvariantCulture, DateTimeStyles.RoundtripKind);
 
+        if (targetType.IsGenericType && targetType.GetGenericTypeDefinition() == typeof(List<>))
+        {
+            var elementType = targetType.GetGenericArguments()[0];
+            var list = (IList)Activator.CreateInstance(targetType)!;
+
+            foreach(var item in (List<object?>)value)
+            {
+                list.Add(DeserializeValue(item, elementType));
+            }
+            return list;
+        }
+        if (targetType == typeof(Dictionary<string, object>)) return value;
         if (value is Dictionary<string, object?> dictionary) return DeserializeObject(dictionary, targetType);
 
         return value;

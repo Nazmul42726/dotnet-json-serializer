@@ -520,6 +520,104 @@ public class JsonSerializerTests
         Assert.Equal(4000, result.Address.Zip);
     }
 
+    [Fact]
+    public void DeserializeList()
+    {
+        var json = "[1, 2, 3]";
+        var result = JsonSerializer.Deserialize<List<int>>(json);
+
+        Assert.NotNull(result);
+        Assert.Equal(3, result.Count);
+        Assert.Equal(1, result[0]);
+        Assert.Equal(2, result[1]);
+        Assert.Equal(3, result[2]);
+    }
+
+    [Fact]
+    public void DeserializeListOfObjects()
+    {
+        var json = """
+            [
+                {
+                    "Id": 1,
+                    "Name": "Nazmul",
+                    "IsActive": true,
+                    "Address": {
+                        "City": "Chittagong",
+                        "Zip": 4000
+                    }
+                },
+                {
+                    "Id": 2,
+                    "Name": "John",
+                    "IsActive": false,
+                    "Address": {
+                        "City": "Dhaka",
+                        "Zip": 1200
+                    }
+                }
+            ]
+            """;
+
+        var result = JsonSerializer.Deserialize<List<User>>(json);
+
+        Assert.NotNull(result);
+        Assert.Equal(2, result.Count);
+
+        Assert.Equal(1, result[0].Id);
+        Assert.Equal("Nazmul", result[0].Name);
+        Assert.True(result[0].IsActive);
+        Assert.Equal("Chittagong", result[0].Address.City);
+
+        Assert.Equal(2, result[1].Id);
+        Assert.Equal("John", result[1].Name);
+        Assert.False(result[1].IsActive);
+        Assert.Equal("Dhaka", result[1].Address.City);
+    }
+
+    [Fact]
+    public void DeserializeDictionary()
+    {
+        var json = """
+            {
+                "Name": "Nazmul",
+                "Age": 23,
+                "IsActive": true
+            }
+            """;
+
+        var result = JsonSerializer.Deserialize<Dictionary<string, object>>(json);
+
+        Assert.NotNull(result);
+        Assert.Equal("Nazmul", result["Name"]);
+        Assert.Equal(23, result["Age"]);
+        Assert.Equal(true, result["IsActive"]);
+    }
+
+    [Fact]
+    public void DeserializeNestedDictionary()
+    {
+        var json = """
+            {
+                "User": {
+                    "Name": "Nazmul",
+                    "Age": 23
+                },
+                "Active": true
+            }
+            """;
+
+        var result = JsonSerializer.Deserialize<Dictionary<string, object>>(json);
+
+        Assert.NotNull(result);
+
+        var user = Assert.IsType<Dictionary<string, object?>>(result["User"]);
+
+        Assert.Equal("Nazmul", user["Name"]);
+        Assert.Equal(23, user["Age"]);
+        Assert.Equal(true, result["Active"]);
+    }
+
 }
 
 public class User
