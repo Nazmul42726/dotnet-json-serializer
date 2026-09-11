@@ -89,15 +89,14 @@ Repeated references that are not circular are allowed.
 | `Guid`                       | Yes           | Yes             |
 | `enum`                       | Yes           | Yes             |
 | Objects                      | Yes           | Yes             |
-| Arrays                       | Yes           | —               |
+| Arrays                       | Yes           | Yes             |
 | `List<T>`                    | Yes           | Yes             |
-| `IEnumerable<T>`             | Yes           | Limited         |
+| `IEnumerable<T>`             | Yes           | Yes (deserializes to List<T>)         |
 | `Dictionary<string, object>` | Yes           | Yes             |
 
 ## Limitations
 
 * JSON object keys are represented as strings.
-* Collection deserialization currently focuses on `List<T>`.
 * Object properties must be writable for reflection-based deserialization.
 * Constructor-based and advanced custom serialization behavior are not supported.
 
