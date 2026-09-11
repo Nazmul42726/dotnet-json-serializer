@@ -1,6 +1,3 @@
-using System.ComponentModel.DataAnnotations;
-using System.Xml;
-
 namespace DotnetJsonSerializer.Tests;
 
 public class JsonSerializerTests
@@ -323,6 +320,49 @@ public class JsonSerializerTests
 
         Assert.Contains("\"City\": \"Chittagong\"", result);
     }
+
+    [Fact]
+    public void ParseNull()
+    {
+        var parser = new JsonParser("  null  ");
+
+        var result = parser.Parse();
+
+        Assert.Null(result);
+    }
+
+    [Fact]
+    public void ParseInteger()
+    {
+        var parser = new JsonParser("123");
+        var result = parser.Parse();
+        Assert.Equal(123, result);
+    }
+
+    [Fact]
+    public void ParseLong()
+    {
+        var parser = new JsonParser("9999999999");
+        var result = parser.Parse();
+        Assert.Equal(9999999999L, result);
+    }
+
+    [Fact]
+    public void ParseDouble()
+    {
+        var parser = new JsonParser("-1.5e2");
+        var result = parser.Parse();
+        Assert.Equal(-150.0, result);
+    }
+
+    [Fact]
+    public void ParseInvalidNumber()
+    {
+        var parser = new JsonParser("1.");
+        Assert.Throws<FormatException>(() => parser.Parse());
+    }
+
+
 }
 
 public class User
@@ -330,7 +370,7 @@ public class User
     public int Id { get; set; }
     public string Name { get; set; } = string.Empty;
     public bool IsActive { get; set; }
-    public Address Address { get; set; }
+    public required Address Address { get; set; }
 }
 
 public class Address
