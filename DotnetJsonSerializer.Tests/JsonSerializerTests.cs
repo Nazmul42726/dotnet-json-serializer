@@ -426,6 +426,73 @@ public class JsonSerializerTests
         Assert.Equal("Chittagong", address["City"]);
         Assert.Equal(4000, address["Zip"]);
     }
+
+    [Fact]
+    public void DeserializeString()
+    {
+        var result = JsonSerializer.Deserialize<string>("\"Nazmul\"");
+        var expected = "Nazmul";
+
+        Assert.Equal(expected, result);
+    }
+
+    [Fact]
+    public void DeserializeInt()
+    {
+        var result = JsonSerializer.Deserialize<int>("123");
+        Assert.Equal(123, result);
+    }
+
+    [Fact]
+    public void DeserializeDouble()
+    {
+        var result = JsonSerializer.Deserialize<double>("12.5");
+        Assert.Equal(12.5, result);
+    }
+
+    [Fact]
+    public void DeserializeDateTime()
+    {
+        var json = "\"2026-09-11T14:30:00.0000000Z\"";
+        var result = JsonSerializer.Deserialize<DateTime>(json);
+
+        Assert.Equal(DateTimeKind.Utc, result.Kind);
+        Assert.Equal(2026, result.Year);
+        Assert.Equal(9, result.Month);
+        Assert.Equal(11, result.Day);
+    }
+
+    [Fact]
+    public void DeserializeGuid()
+    {
+        var json = "\"550e8400-e29b-41d4-a716-446655440000\"";
+        var result = JsonSerializer.Deserialize<Guid>(json);
+
+        Assert.Equal(Guid.Parse("550e8400-e29b-41d4-a716-446655440000"), result);
+    }
+
+    [Fact]
+    public void DeserializeEnum()
+    {
+        var result = JsonSerializer.Deserialize<Status>("1");
+
+        Assert.Equal(Status.Active, result);
+    }
+
+    [Fact]
+    public void DeserializeNullableInt()
+    {
+        var result = JsonSerializer.Deserialize<int?>("42");
+        Assert.Equal(42, result);
+    }
+
+    [Fact]
+    public void DeserializeNullableIntNull()
+    {
+        var result = JsonSerializer.Deserialize<int?>("null");
+        Assert.Null(result);
+    }
+
 }
 
 public class User

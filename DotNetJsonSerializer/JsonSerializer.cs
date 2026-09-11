@@ -11,6 +11,33 @@ public static class JsonSerializer
         return Serialize(obj, []);
     }
 
+    public static T? Deserialize<T>(string json)
+    {
+        var parser = new JsonParser(json);
+        var result = parser.Parse();
+
+        return (T?)DeserializeValue(result, typeof(T));
+    }
+
+    private static object? DeserializeValue(object? value, Type targetType)
+    {
+        if (Nullable.GetUnderlyingType(targetType) is Type underlyingType)
+            return DeserializeValue(value, underlyingType);
+            
+        if (value is null) return null;
+        if (targetType == typeof(string)) return (string)value;
+        if (targetType == typeof(bool)) return (bool)value;
+        if (targetType == typeof(int)) return Convert.ToInt32(value);
+        if (targetType == typeof(long)) return Convert.ToInt64(value);
+        if (targetType == typeof(float)) return Convert.ToSingle(value);
+        if (targetType == typeof(double)) return Convert.ToDouble(value);
+        if (targetType == typeof(decimal)) return Convert.ToDecimal(value);
+        if (targetType == typeof(Guid)) return Guid.Parse((string)value!);
+        if (targetType.IsEnum) return Enum.ToObject(targetType, value!);
+        if (targetType == typeof(DateTime))
+            return DateTime.Parse((string)value!, CultureInfo.InvariantCulture, DateTimeStyles.RoundtripKind);
+        return value;
+    }
     private static string Serialize(
         object? obj,
         HashSet<object> references)
@@ -64,10 +91,10 @@ public static class JsonSerializer
     {
         var builder = new StringBuilder();
 
-        foreach(var ch in s)
+        foreach (var ch in s)
         {
-            if(EscapeSequences.TryGetValue(ch, out var escaped)) builder.Append(escaped);
-            else if(ch < ' ') builder.Append($"\\u{(int)ch:X4}");
+            if (EscapeSequences.TryGetValue(ch, out var escaped)) builder.Append(escaped);
+            else if (ch < ' ') builder.Append($"\\u{(int)ch:X4}");
             else builder.Append(ch);
         }
         return builder.ToString();
