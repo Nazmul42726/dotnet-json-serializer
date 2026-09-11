@@ -27,8 +27,16 @@ public static class JsonSerializer
             return DeserializeValue(value, underlyingType);
 
         if (value is null) return null;
-        if (targetType == typeof(string)) return (string)value;
-        if (targetType == typeof(bool)) return (bool)value;
+        if (targetType == typeof(string))
+        {
+            if (value is string stringValue) return stringValue;
+            throw new FormatException("Cannot deserialize value to string.");
+        }
+        if (targetType == typeof(bool))
+        {
+            if (value is bool boolValue) return boolValue;
+            throw new FormatException("Cannot deserialize value to bool.");
+        }
         if (targetType == typeof(int))
         {
             if (value is int intValue) return intValue;

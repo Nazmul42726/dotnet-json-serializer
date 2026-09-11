@@ -94,6 +94,15 @@ Repeated references that are not circular are allowed.
 | `IEnumerable<T>`             | Yes           | Yes (deserializes to List<T>)         |
 | `Dictionary<string, object>` | Yes           | Yes             |
 
+### Special Types
+
+The serializer uses the following representations for special types:
+
+* **DateTime**: serialized as an ISO 8601 string using round-trip formatting, preserving the `DateTimeKind` when possible.
+* **Guid**: serialized as the standard hyphenated GUID string.
+* **Enum**: serialized using its underlying numeric value.
+* **Nullable value types**: serialized as their underlying value when non-null, or `null` when null.
+
 ## Limitations
 
 * JSON object keys are represented as strings.
