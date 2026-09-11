@@ -1,11 +1,13 @@
 using System.Collections;
 using System.Globalization;
+using System.Reflection;
 using System.Text;
 
 namespace DotnetJsonSerializer;
 
 public static class JsonSerializer
 {
+    private static readonly Dictionary<Type, PropertyInfo[]> PropertyCache = new();
     public static string Serialize(object? obj)
     {
         return Serialize(obj, []);
@@ -42,7 +44,7 @@ public static class JsonSerializer
             var elementType = targetType.GetGenericArguments()[0];
             var list = (IList)Activator.CreateInstance(targetType)!;
 
-            foreach(var item in (List<object?>)value)
+            foreach (var item in (List<object?>)value)
             {
                 list.Add(DeserializeValue(item, elementType));
             }
@@ -141,7 +143,13 @@ public static class JsonSerializer
         var result = new StringBuilder();
         result.Append("{");
 
-        var properties = obj.GetType().GetProperties();
+        var type = obj.GetType();
+
+        if (!PropertyCache.TryGetValue(type, out var properties))
+        {
+            properties = type.GetProperties();
+            PropertyCache[type] = properties;
+        }
 
         for (var i = 0; i < properties.Length; i++)
         {

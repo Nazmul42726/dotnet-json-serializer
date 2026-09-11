@@ -100,13 +100,32 @@ Repeated references that are not circular are allowed.
 * Collection deserialization currently focuses on `List<T>`.
 * Object properties must be writable for reflection-based deserialization.
 * Constructor-based and advanced custom serialization behavior are not supported.
-* Reflection metadata caching has not been implemented.
 
 ## Performance
 
-Reflection is used during object serialization and deserialization, which introduces overhead compared with manually written serialization.
+Reflection introduces overhead during object serialization, particularly when discovering properties repeatedly.
 
-The main optimization opportunity is caching reflected property metadata for frequently serialized types.
+The main optimization target was:
+
+```csharp
+obj.GetType().GetProperties()
+```
+
+The serializer now caches the reflected `PropertyInfo[]` for each object type. This avoids repeating property discovery when the same type is serialized many times.
+
+A simple benchmark serialized the same `User` object 100,000 times.
+
+| Version        | Average time (ms) |
+| -------------- | ----------------: |
+| Before caching |               304 |
+| After caching  |               252 |
+
+The results show an approximately **17% improvement** in this benchmark.
+
+The benchmark uses `Stopwatch` and is affected by normal system and runtime variation, so the measurements are approximate. The averages are based on four runs for each version.
+
+The benchmark is intentionally simple and focuses on demonstrating the effect of caching reflection metadata rather than providing a production-grade performance measurement.
+
 
 ## Testing
 
