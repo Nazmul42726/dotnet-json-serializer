@@ -644,6 +644,22 @@ public class JsonSerializerTests
         Assert.Throws<FormatException>(() => JsonSerializer.Deserialize<User>(json));
     }
 
+    [Fact]
+    public void DeserializeArray()
+    {
+        var json = "[1, 2, 3]";
+        var result = JsonSerializer.Deserialize<int[]>(json);
+        Assert.Equal(new[] { 1, 2, 3 }, result);
+    }
+
+    [Fact]
+    public void DeserializeIEnumerable()
+    {
+        var json = "[1, 2, 3]";
+        var result = JsonSerializer.Deserialize<IEnumerable<int>>(json);
+        Assert.Equal(new[] { 1, 2, 3 }, result);
+    }
+
 }
 
 public class User

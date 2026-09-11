@@ -10,7 +10,7 @@ public static class JsonSerializer
     private static readonly Dictionary<Type, PropertyInfo[]> PropertyCache = new();
     public static string Serialize(object? obj)
     {
-        return Serialize(obj, []);
+        return Serialize(obj, new HashSet<object>(ReferenceEqualityComparer.Instance));
     }
 
     public static T? Deserialize<T>(string json)
@@ -29,20 +29,72 @@ public static class JsonSerializer
         if (value is null) return null;
         if (targetType == typeof(string)) return (string)value;
         if (targetType == typeof(bool)) return (bool)value;
-        if (targetType == typeof(int)) return Convert.ToInt32(value);
-        if (targetType == typeof(long)) return Convert.ToInt64(value);
-        if (targetType == typeof(float)) return Convert.ToSingle(value);
-        if (targetType == typeof(double)) return Convert.ToDouble(value);
-        if (targetType == typeof(decimal)) return Convert.ToDecimal(value);
+        if (targetType == typeof(int))
+        {
+            if (value is int intValue) return intValue;
+            throw new FormatException("Cannot deserialize value to int.");
+        }
+        if (targetType == typeof(long))
+        {
+            if (value is int intValue) return (long)intValue;
+            if (value is long longValue) return longValue;
+            throw new FormatException("Cannot deserialize value to long.");
+        }
+        if (targetType == typeof(float))
+        {
+            if (value is int intValue) return (float)intValue;
+            if (value is long longValue) return (float)longValue;
+            if (value is double doubleValue) return (float)doubleValue;
+            throw new FormatException("Cannot deserialize value to float.");
+        }
+        if (targetType == typeof(double))
+        {
+            if (value is int intValue) return (double)intValue;
+            if (value is long longValue) return (double)longValue;
+            if (value is double doubleValue) return doubleValue;
+            throw new FormatException("Cannot deserialize value to double.");
+        }
+        if (targetType == typeof(decimal))
+        {
+            if (value is int intValue) return (decimal)intValue;
+            if (value is long longValue) return (decimal)longValue;
+            if (value is double doubleValue) return (decimal)doubleValue;
+            throw new FormatException("Cannot deserialize value to decimal.");
+        }
+
         if (targetType == typeof(Guid)) return Guid.Parse((string)value!);
         if (targetType.IsEnum) return Enum.ToObject(targetType, value!);
         if (targetType == typeof(DateTime))
             return DateTime.Parse((string)value!, CultureInfo.InvariantCulture, DateTimeStyles.RoundtripKind);
 
+        if (targetType.IsArray)
+        {
+            var elementType = targetType.GetElementType()!;
+            var items = (List<object?>)value;
+            var array = Array.CreateInstance(elementType, items.Count);
+
+            for (var i = 0; i < items.Count; i++)
+            {
+                array.SetValue(DeserializeValue(items[i], elementType), i);
+            }
+            return array;
+        }
         if (targetType.IsGenericType && targetType.GetGenericTypeDefinition() == typeof(List<>))
         {
             var elementType = targetType.GetGenericArguments()[0];
             var list = (IList)Activator.CreateInstance(targetType)!;
+
+            foreach (var item in (List<object?>)value)
+            {
+                list.Add(DeserializeValue(item, elementType));
+            }
+            return list;
+        }
+        if (targetType.IsGenericType && targetType.GetGenericTypeDefinition() == typeof(IEnumerable<>))
+        {
+            var elementType = targetType.GetGenericArguments()[0];
+            var listType = typeof(List<>).MakeGenericType(elementType);
+            var list = (IList)Activator.CreateInstance(listType)!;
 
             foreach (var item in (List<object?>)value)
             {
@@ -154,6 +206,9 @@ public static class JsonSerializer
         for (var i = 0; i < properties.Length; i++)
         {
             var property = properties[i];
+
+            if (!property.CanRead || property.GetIndexParameters().Length > 0) continue;
+
             var propertyName = property.Name;
             var propertyValue = property.GetValue(obj);
 
