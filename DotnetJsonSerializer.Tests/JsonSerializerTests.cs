@@ -493,6 +493,33 @@ public class JsonSerializerTests
         Assert.Null(result);
     }
 
+    [Fact]
+    public void DeserializeObject()
+    {
+        var json = """
+            {
+                "Id": 1,
+                "Name": "Nazmul",
+                "IsActive": true,
+                "Address": {
+                    "City": "Chittagong",
+                    "Zip": 4000
+                }
+            }
+            """;
+
+        var result = JsonSerializer.Deserialize<User>(json);
+
+        Assert.NotNull(result);
+        Assert.Equal(1, result.Id);
+        Assert.Equal("Nazmul", result.Name);
+        Assert.True(result.IsActive);
+
+        Assert.NotNull(result.Address);
+        Assert.Equal("Chittagong", result.Address.City);
+        Assert.Equal(4000, result.Address.Zip);
+    }
+
 }
 
 public class User
