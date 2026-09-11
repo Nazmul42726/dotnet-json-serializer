@@ -12,7 +12,7 @@ internal class JsonParser(string json)
         var value = ParseValue();
         SkipWhiteSpace();
 
-        if(_index != _json.Length)
+        if (_index != _json.Length)
             throw new FormatException("Unexpected Token!");
 
         return value;
@@ -45,8 +45,89 @@ internal class JsonParser(string json)
         }
 
         if (_json[_index] == '-' || char.IsDigit(_json[_index])) return ParseNumber();
+        if (_json[_index] == '[') return ParseArray();
+        if (_json[_index] == '{') return ParseObject();
 
         throw new FormatException("Invalid JSON value.");
+    }
+
+    private Dictionary<string, object?> ParseObject()
+    {
+        _index++;
+
+        var result = new Dictionary<string, object?>();
+        SkipWhiteSpace();
+
+        if (_index < _json.Length && _json[_index] == '}')
+        {
+            _index++;
+            return result;
+        }
+
+        while (true)
+        {
+            SkipWhiteSpace();
+            if (_index >= _json.Length || _json[_index] != '"')
+                throw new FormatException("Expected property name!");
+
+            var key = ParseString();
+            SkipWhiteSpace();
+
+            if (_index >= _json.Length || _json[_index] != ':')
+                throw new FormatException("Expected ':'!");
+
+            _index++;
+
+            SkipWhiteSpace();
+            result[key] = ParseValue();
+            SkipWhiteSpace();
+
+            if (_index < _json.Length && _json[_index] == '}')
+            {
+                _index++;
+                return result;
+            }
+
+            if (_index >= _json.Length || _json[_index] != ',')
+                throw new FormatException("Expected ',' or '}'!");
+
+            _index++;
+        }
+    }
+
+    private List<object?> ParseArray()
+    {
+        _index++;
+
+        var result = new List<object?>();
+
+        SkipWhiteSpace();
+
+        if (_index < _json.Length && _json[_index] == ']')
+        {
+            _index++;
+            return result;
+        }
+
+        while (true)
+        {
+            result.Add(ParseValue());
+
+            SkipWhiteSpace();
+
+            if (_index < _json.Length && _json[_index] == ']')
+            {
+                _index++;
+                return result;
+            }
+
+            if (_index >= _json.Length || _json[_index] != ',')
+                throw new FormatException("Expected ',' or ']'!");
+
+            _index++;
+
+            SkipWhiteSpace();
+        }
     }
 
     private static readonly Dictionary<char, char> EscapeSequences = new()
@@ -102,6 +183,7 @@ internal class JsonParser(string json)
 
                 throw new FormatException("Invalid Escape Sequence!");
             }
+            result.Append(ch);
         }
         throw new FormatException("Unterminated String!");
     }

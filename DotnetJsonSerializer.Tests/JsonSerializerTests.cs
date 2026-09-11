@@ -332,6 +332,14 @@ public class JsonSerializerTests
     }
 
     [Fact]
+    public void ParseString()
+    {
+        var parser = new JsonParser("\"Nazmul\"");
+        var result = parser.Parse();
+        Assert.Equal("Nazmul", result);
+    }
+
+    [Fact]
     public void ParseInteger()
     {
         var parser = new JsonParser("123");
@@ -362,7 +370,62 @@ public class JsonSerializerTests
         Assert.Throws<FormatException>(() => parser.Parse());
     }
 
+    [Fact]
+    public void ParseArray()
+    {
+        var parser = new JsonParser("[1, 2, 3]");
+        var result = parser.Parse();
+        var array = Assert.IsType<List<object?>>(result);
 
+        Assert.Equal(3, array.Count);
+        Assert.Equal(1, array[0]);
+        Assert.Equal(2, array[1]);
+        Assert.Equal(3, array[2]);
+    }
+
+    [Fact]
+    public void ParseNestedArray()
+    {
+        var parser = new JsonParser("[1, [2, 3], null]");
+        var result = parser.Parse();
+        var array = Assert.IsType<List<object?>>(result);
+        var nested = Assert.IsType<List<object?>>(array[1]);
+
+        Assert.Equal(1, array[0]);
+        Assert.Equal(2, nested[0]);
+        Assert.Equal(3, nested[1]);
+        Assert.Null(array[2]);
+    }
+
+    [Fact]
+    public void ParseObject()
+    {
+        var user = new User
+        {
+            Id = 1,
+            Name = "Nazmul",
+            IsActive = true,
+            Address = new Address
+            {
+                City = "Chittagong",
+                Zip = 4000
+            }
+        };
+
+        string json = JsonSerializer.Serialize(user);
+        var parser = new JsonParser(json);
+
+        var result = parser.Parse();
+
+        var obj = Assert.IsType<Dictionary<string, object?>>(result);
+        var address = Assert.IsType<Dictionary<string, object?>>(obj["Address"]);
+
+        Assert.Equal(1, obj["Id"]);
+        Assert.Equal("Nazmul", obj["Name"]);
+        Assert.Equal(true, obj["IsActive"]);
+        Assert.Equal("Chittagong", address["City"]);
+        Assert.Equal(4000, address["Zip"]);
+    }
 }
 
 public class User
