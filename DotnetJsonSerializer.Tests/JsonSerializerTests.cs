@@ -618,6 +618,32 @@ public class JsonSerializerTests
         Assert.Equal(true, result["Active"]);
     }
 
+    [Fact]
+    public void DeserializeInvalidJson()
+    {
+        var json = """{"Name": "Nazmul",}""";
+
+        Assert.Throws<FormatException>(() => JsonSerializer.Deserialize<User>(json));
+    }
+
+    [Fact]
+    public void DeserializeTypeMismatch()
+    {
+        var json = """
+            {
+                "Id": "not a number",
+                "Name": "Nazmul",
+                "IsActive": true,
+                "Address": {
+                    "City": "Chittagong",
+                    "Zip": 4000
+                }
+            }
+            """;
+
+        Assert.Throws<FormatException>(() => JsonSerializer.Deserialize<User>(json));
+    }
+
 }
 
 public class User
